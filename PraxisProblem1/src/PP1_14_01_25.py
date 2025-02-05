@@ -12,6 +12,7 @@ from random import sample
 import timeit
 
 import numpy as np  # Für Berechnungen
+import scipy as sc
 import sounddevice as sd  # Für Audioausgabe
 import soundfile as sf  # Zum Dateien einlesen
 import matplotlib.pyplot as plt  # Für Plotting
@@ -51,11 +52,6 @@ def calc_energy_in_interval(file, start_time=0, end_time=None, fs=44100):
 # Berechnet Scheitelfaktor, RMS und Crest-Faktor
 def calculate_rms(waveform):
     return np.sqrt(np.mean(np.square(waveform)))
-
-
-def corr_factor(signal1, signal2, fs=44100):
-    return (np.sum(signal1 * signal2) / fs) / np.sqrt(calc_energy(signal1) * calc_energy(signal2))
-
 
 def load_wav(file_path):
     file = os.path.join(os.path.dirname(__file__), file_path)
@@ -201,7 +197,7 @@ def calc_TN(file_data, sample_rate=44100):
 
     print(f"T_10: {abs(t_5 - t_15) * 6:.2f}s | T_20: {abs(t_5 - t_25) * 3:.2f}s | T_30: {abs(t_5 - t_35) * 2:.2f}s")
 
-    plt.figure(figsize=(10, 6))
+
     plt.plot(times, energies_log)
     plt.plot([t_5, t_15], [e_5, e_15], '--')
     plt.plot([t_5, t_25], [e_5, e_25], '--')
@@ -255,6 +251,7 @@ def plot_spectrogram_and_frequency_response(file, sample_rate):
 
 '''Ablauf'''
 h_data, sample_rate = load_wav("Datei A_WS24.wav")
+#h_data = h_data[:len(h_data) // 2]  # Nur die erste Hälfte des Signals verwenden
 
 #Aufgabe Spektrogramm
 plot_spectrogram_and_frequency_response(h_data, sample_rate)
