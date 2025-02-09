@@ -5,7 +5,7 @@ Mario Seibert
 Tom Koryciak
 Gabriel Christoforidis
 '''
-#Hallo
+#H
 
 import os  # Für Dateipfade
 from math import log10
