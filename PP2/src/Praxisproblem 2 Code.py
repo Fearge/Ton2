@@ -60,6 +60,48 @@ def save_audio(file_path, audio_data, sample_rate, subtype='PCM_16'):
     sf.write(file_path, audio_data, sample_rate, subtype=subtype)
 
 
+def approximate_linear(a, b = 0, N = 16):
+    """
+    Approximiert eine lineare Kennlinie y = a * x + b mit einer e-Funktion der Form y = c*e^(d * x)
+    anhand der Methode der kleinsten Quadrate
+    Parameters
+    ----------
+    a = Steigung der linearen Kennlinie
+    b = y-Achsenabschnitt der linearen Kennlinie
+    N = Anzahl der Auflösungsbits
+    dyn_range = nuerische Grenzen des Dynamikbereichs
+
+    Returns
+    -------
+    c, d, arithmetischer Fehler der Approximation
+    """
+
+    # lineare Kennlinie
+    x = np.linspace(1, 3, 2**N)
+    y = a * x
+
+    # e-Funktion
+    [d,c] = np.polyfit(x, np.log(y), 1)
+
+    # arithmetischer Fehler
+    error = np.sum((y - np.exp(c) * np.exp(d * x))) / len(y)
+
+    # beide Funktionen um den Nullpunkt plotten
+    plt.figure(figsize=(8, 6))
+    plt.plot(x-2, y-2, label='Lineare Kennlinie')
+    plt.plot(x-2, np.exp(c) * np.exp(d * x) - 2, label='Exponentielle Kennlinie')
+    plt.title('Ideale und approximierte Kennlinie der Form $y = a \cdot e^{b \cdot x}$')
+    plt.xlabel('Eingangssignal')
+    plt.ylabel(f'Ausgangssignal')
+    plt.legend()
+    plt.show()
+    return c, d, error
+
+
+
+
+
+
 def process_signal(input_signal, a, b, work_point):
     """
     Prozessiert ein Eingangssignal mit der Kennlinie y1(x) = e^(a * (x - work_point)) - b und plottet die Kennlinie.
@@ -309,8 +351,8 @@ if __name__ == "__main__":
     input_waveform, t = generate_waveform('sine', frequency, duration, sample_rate)
 
     # Audiodatei laden
-    input_signal, sample_rate = load_wav("Sprechen_1.wav")
-    t = np.linspace(0, len(input_signal) / sample_rate, num=len(input_signal), endpoint=False)
+    #input_signal, sample_rate = load_wav("Sprechen_1.wav")
+    #t = np.linspace(0, len(input_signal) / sample_rate, num=len(input_signal), endpoint=False)
 
 
 
@@ -320,6 +362,7 @@ if __name__ == "__main__":
     b = 0
     AP = 0.4  # Arbeitspunkt (verschiebt praktisch Kennlinie nach links)
     print(f"a = {a}, b = {b}, AP = {AP}")
+    approximate_linear(1.1, N = 8)
 
     print("{0:–>23} Processing und Plotten {0:–<23}".format(""))
     print("<Siehe Plots>")
