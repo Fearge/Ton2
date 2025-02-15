@@ -4,6 +4,7 @@ import numpy as np
 import matplotlib.pyplot as plt
 import scipy
 import soundfile as sf  # Zum Dateien einlesen
+from matplotlib.ticker import ScalarFormatter
 from scipy.fft import fft, fftfreq
 
 
@@ -53,12 +54,10 @@ def load_wav(file_path):
     file = os.path.join(os.path.dirname(__file__), file_path)
     data, sample_rate = sf.read(file)
 
-    """if data.ndim > 1:  # Check if the audio is stereo
-        left_channel = data[:, 0]  # Take only the left channel
-    else:
-        left_channel = data  # If mono, use the data as is"""
+    if data.ndim > 1:
+        data = data[:, 0]
 
-    return data[:,0], sample_rate
+    return data, sample_rate
 
 
 def spec(file, sample_rate):
@@ -71,7 +70,8 @@ def spec(file, sample_rate):
     plt.plot(freqs, mg_db)
     plt.xlabel('Frequency (Hz)')
     plt.xscale('log')
-    plt.xlim(20, 20000)  # Set x-axis range from 20 Hz to 20 kHz
+    plt.gca().xaxis.set_major_formatter(ScalarFormatter(useMathText=True))
+    plt.xlim(20, 22050)  # Set x-axis range from 20 Hz to 20 kHz
     plt.ylabel('Magnitude')
     plt.title('Frequency Spectrum')
     plt.grid()
@@ -79,7 +79,7 @@ def spec(file, sample_rate):
 
 # Example usage
 if __name__ == "__main__":
-    h_data, sample_rate = load_wav("Datei A_WS24.wav")
+    h_data, sample_rate = load_wav("test_h_von_t_W23.wav")
     duration = 1.0  # seconds
     frequency = 100  # Hz
     t = np.linspace(0, duration, int(sample_rate * duration), endpoint=False)
