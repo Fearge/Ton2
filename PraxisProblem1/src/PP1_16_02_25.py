@@ -166,6 +166,8 @@ def backwards_integration(file):
 
 
 def calc_TN(file_data, sample_rate=44100):
+    # Filterbank mit Oktavfiltern
+
     file_data = remove_zeros(file_data)
     duration = len(file_data) / sample_rate
 
@@ -193,8 +195,6 @@ def calc_TN(file_data, sample_rate=44100):
     plt.plot([t_25], [e_25], 'ro')
     plt.plot([t_35], [e_35], 'ro')"""
 
-
-
     # Plot interpolated lines
     rt10_line = np.interp(times[find_closest_index(times,t_5):find_closest_index(times,t_15)], [t_5, t_15], [-5, -15])
     rt20_line = np.interp(times[find_closest_index(times,t_5):find_closest_index(times,t_25)], [t_5, t_25], [-5, -25])
@@ -219,14 +219,10 @@ def calc_TN(file_data, sample_rate=44100):
 
 '''Aufgabe: Amplitudenfrequenzgang und Spektrogramm'''
 
-def plot_spectrogram_and_frequency_response(file, sample_rate):
+def plot_spectrogram_and_spectrum(file, sample_rate):
     # Berechnung des Frequenzgangs
-    # Optimierung: Reduzierung von worN auf 4096 für schnellere Berechnung (Nachteil: geringere Frequenzauflösung)
-    #freqs, response = signal.freqz(file, worN=4096, fs=sample_rate)
-    """t = np.linspace(0, 1.0, int(sample_rate * 1.0), endpoint=False)
-    file = np.sin(2 * np.pi * 1000 * t)"""
     ft = np.fft.rfft(file)
-    freqs = np.linspace(0, sample_rate/2, len(ft))
+    freqs = np.fft.rfftfreq(len(file), 1/sample_rate)
     mg_db = 20 * np.log10(abs(ft))
 
     #Ampl.-Frequenzgang erzeugen
@@ -235,8 +231,8 @@ def plot_spectrogram_and_frequency_response(file, sample_rate):
     plt.plot(freqs, mg_db)
     plt.title("Amplitudenfrequenzgang")
     plt.xlabel("Frequenz (Hz)")
-    plt.xscale("log")
-    plt.gca().xaxis.set_major_formatter(ScalarFormatter(useMathText=True))
+    #plt.xscale("log")
+    #plt.gca().xaxis.set_major_formatter(ScalarFormatter(useMathText=True))
     plt.xlim(20, 22050)  # Set x-axis range from 20 Hz to 20 kHz
     plt.ylabel("Amplitude (dB)")
     plt.grid()
@@ -267,14 +263,14 @@ def plot_RIR_logarithmic(file, sample_rate):
     plt.show()
 
 '''Ablauf'''
-h_data, sample_rate = load_wav("Datei_C WS24.wav")
+h_data, sample_rate = load_wav("Datei A_WS24.wav")
 h_data = h_data[:, 1]
 print(sample_rate)
 
 plot_RIR_logarithmic(h_data, sample_rate)
 
 #Aufgabe Spektrogramm
-plot_spectrogram_and_frequency_response(h_data, sample_rate)
+plot_spectrogram_and_spectrum(h_data, sample_rate)
 
 #Aufgabe TN
 calc_TN(h_data, sample_rate)

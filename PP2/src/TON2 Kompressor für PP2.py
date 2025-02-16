@@ -33,14 +33,17 @@ from scipy.io.wavfile import read
 
 
 ## Zentrale Schalter
-wahl_dynamik = 1  # wenn wahl_dynamik = 1: dynamische Kennlinie, wenn 0: statische Kennlinie
+wahl_dynamik = 0  # wenn wahl_dynamik = 1: dynamische Kennlinie, wenn 0: statische Kennlinie
 wahl_funktion = 'Komp' # Wahl:'Lim:' Limiter, 'Komp': Kompressor
 
-x_ref = pow(2,15)-1  #Referenzwert für Pegel
+x_ref = pow(2,23)-1  #Referenzwert für Pegel
 
 ####################################
 # Einlesen Testsignal
-Fs,x= read("test.wav")
+Fs,x= read("Hahn_2.wav")
+if len(x.shape) > 1:
+    x = (x[:,0] + x[:,1])/2
+#x = x/pow(2,23)-1  # Normierung auf [-1,1]
 anz_werte = x.size
 dauer_s = anz_werte/Fs
 deltat = 1./(Fs)  #Zeit-Schritt, float
@@ -66,10 +69,10 @@ a_T = np.e **(-faktor/(tRT_i))
 
 ## x_ref = np.abs(np.max(x))  #Referenzwert für Pegel
 
-L_thresh = -6   #Threshold, in dB, !!! WERT EINGEBEN
+L_thresh = 0   #Threshold, in dB, !!! WERT EINGEBEN
 u_thresh = 10**(L_thresh/20)*x_ref
 
-R = 20 # Ratio, !!! WERT EINGEBEN
+R = 1 # Ratio, !!! WERT EINGEBEN
 if R == 0: R = 0.1
 
 L_M = 0   # Make up-Gain in dB  !!! WERT EINGEBEN
@@ -79,8 +82,8 @@ L_M = 0   # Make up-Gain in dB  !!! WERT EINGEBEN
 PegelMin = -95   # Pegelgrenze nach unten in dB
 
 # Eingangssingal als Pegel:
-Lx = np.zeros(anz_werte)      
-Lx[1:] = 20*np.log10(np.abs(x[1:])/x_ref)    
+Lx = np.zeros(anz_werte)
+Lx[1:] = 20*np.log10(np.abs(x[1:])/x_ref)
 Lx[0] = Lx[1]             # damit nicht log(0)
 
 # Begrenzung des minimalen Pegels (mathematisch erforderlich)
@@ -150,7 +153,7 @@ ax.plot(t,g_a)  # Plotten von gain über t
 
 # Einrichtung der Achsen:
 ax.set_xlim(0, dauer_s)
-ax.set_ylim(-1.2, 1.2)
+#ax.set_ylim(-1.2, 1.2)
 ax.set_xlabel('$t$ in s')
 ax.set_ylabel('$y$($t$),$g$($t$) ')
 ax.grid(True)
