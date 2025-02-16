@@ -77,8 +77,10 @@ def plot_spectrum_with_peaks(fft_magnitude, sample_rate, peaks, value, title):
     plt.plot(freqs, fft_magnitude, label='Spectrum')
     plt.plot(freqs[peaks], fft_magnitude[peaks], 'ro', label='Peaks')  # Mark the peaks
     for peak in peaks:
-        plt.annotate(f'{fft_magnitude[peak]:.2f}', (freqs[peak], fft_magnitude[peak]),
-                     textcoords="offset points", xytext=(0, 10), ha='center')  # Annotate the peaks
+        plt.annotate(f'{fft_magnitude[peak]:.2f}\n{freqs[peak]:.1f} Hz',
+                     (freqs[peak], fft_magnitude[peak]),
+                     textcoords="offset points", xytext=(0, 10),
+                     ha='center')  # Annotate the peaks with magnitude and frequency
     plt.xlabel('Frequency (Hz)')
     plt.ylabel('Amplitude')
     plt.title(f'Spectrum with Peaks ({title}: {value:.2f}%)')
@@ -163,7 +165,7 @@ def calc_klirr(signal, sample_rate, distance = 100, height_threshold = 0.01, thr
 if __name__ == "__main__":
     sr = 44100
     freq = 1000
-    signal = generate_waveform('sine', freq, 0.1, sr)
+    signal = generate_waveform('square', freq, 0.1, sr)
     thd = calc_thd(signal, sr, 100)
     klirr = calc_klirr(signal, sr, 100)
     print(f"THD: {thd:.2f}%")
