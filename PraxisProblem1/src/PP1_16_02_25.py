@@ -155,6 +155,26 @@ def foldThis(originalSounds, roomSounds):
     return y, rate1
 
 
+def octave_filterbank(frequencies, sample_rate=44100, showFilter=False):
+    Filterkoeffizienten = []
+    for f0 in frequencies:
+        koeffizientensatz = signal.butter(6, [int(f0 / np.sqrt(2)), int(f0 * np.sqrt(2))], btype='band', fs=sample_rate)
+        Filterkoeffizienten.append(koeffizientensatz)
+        w, h = signal.freqz(koeffizientensatz[0], koeffizientensatz[1], worN=8000)
+
+        if showFilter:
+            # Plot the frequency response
+            plt.figure(figsize=(10, 6))
+            plt.plot(0.5 * sample_rate * w / np.pi, 20 * np.log10(np.abs(h)), 'b')
+            plt.title(f'Bandpass Filter Frequency Response: f0 = {str(f0)} Hz')
+            plt.xlabel('Frequency [Hz]')
+            plt.ylabel('Gain [dB]')
+            plt.grid()
+            plt.show()
+
+    return Filterkoeffizienten
+
+
 def backwards_integration(file):
     return np.flip(np.flip(file ** 2).cumsum())
     #diese Funktion ist deutlich schneller als die untenstehende
@@ -265,35 +285,46 @@ def plot_RIR_logarithmic(file, sample_rate):
     plt.grid()
     plt.show()
 
-'''Ablauf'''
-h_data, sample_rate = load_wav("Datei A_WS24.wav")
-h_data = h_data[:, 1]
-print(sample_rate)
 
-plot_RIR_logarithmic(h_data, sample_rate)
+if __name__ == "__main__":
+    '''Ablauf'''
+    print("{0:–>23} Impulsantwort einlesen {0:–<23}".format(""))
+    h_data, sample_rate = load_wav("Datei A_WS24.wav")
+    h_data = h_data[:, 1]
+    print(f'Sample Rate: {sample_rate} Hz')
 
-#Aufgabe Spektrogramm
-plot_spectrogram_and_spectrum(h_data, sample_rate)
+    #plot_RIR_logarithmic(h_data, sample_rate) # zur Bestimmung des SNR
 
-#Aufgabe TN
-calc_TN(h_data, sample_rate)
+    # Spektrogramm und Amplitudenfrequenzgang
+    plot_spectrogram_and_spectrum(h_data, sample_rate)
 
-"""#Aufgabe Maße
-print("{0:->20} Mit Stille vor Datei {0:-<20}".format(""))
-h_data = prepend_zeros(h_data,
-                       2200)  # Stille vor Signal Start simulieren (C50 -> 2205 samples, C80 -> 3528 samples für -inf dB bei fs = 44100)
-print(f"Erste 10 Stellen:\n{h_data[:10]}")
-print(f"C50 = {calc_c50(h_data):.2f}dB")
-print(f"C80 = {calc_c80(h_data):.2f}dB")
+    #Aufgabe TN
+    # Falls frequenzabhägige Nachhallzeit gewünscht: Filter erstellen + Signal filtern
+    # Filter sind zunächst 6. Ordnung, für höhere Ordnung Filter kaskadieren
+    """filter_koeff = octave_filterbank([1000], sample_rate=sample_rate)
+    data_1000 = signal.lfilter(filter_koeff[0][0], filter_koeff[0][1], h_data)  # Filtern
+    data_1000 = signal.lfilter(filter_koeff[0][0], filter_koeff[0][1], data_1000)  # Filtern
+    plot_spectrogram_and_spectrum(data_1000, sample_rate)"""
+    print("{0:–>23} Nachhallzeit berechnen {0:–<23}".format(""))
+    calc_TN(h_data, sample_rate)
 
-print("{0:->20} Bis zum Start gekürzt {0:-<20}".format(""))
-h_data = cut_to_start(h_data)"""
-print(f"Erste 10 Stellen:\n{h_data[:10]}")
-print(f"C50 = {calc_c50(h_data, sample_rate):.2f} dB")
-print(f"C80 = {calc_c80(h_data, sample_rate):.2f} dB")
 
-#Aufgabe Faltung
-originalSounds = "Dustbin.wav"
-roomSounds = "Datei A_WS24.wav"
-y, rate1 = foldThis(originalSounds, roomSounds)
-#play_audio(y, rate1)
+    #Aufgabe Maße
+    print("{0:->23} Mit Stille vor Datei {0:-<23}".format(""))
+    h_data = prepend_zeros(h_data,
+                           2200)  # Stille vor Signal Start simulieren (C50 -> 2205 samples, C80 -> 3528 samples für -inf dB bei fs = 44100)
+    print(f"Erste 10 Stellen:\n{h_data[:10]}")
+    print(f"C50 = {calc_c50(h_data):.2f}dB")
+    print(f"C80 = {calc_c80(h_data):.2f}dB")
+
+    print("{0:->20} Bis zum Start gekürzt {0:-<20}".format(""))
+    h_data = cut_to_start(h_data)
+    print(f"Erste 10 Stellen:\n{h_data[:10]}")
+    print(f"C50 = {calc_c50(h_data, sample_rate):.2f} dB")
+    print(f"C80 = {calc_c80(h_data, sample_rate):.2f} dB")
+
+    #Aufgabe Faltung
+    originalSounds = "Dustbin.wav"
+    roomSounds = "Datei A_WS24.wav"
+    y, rate1 = foldThis(originalSounds, roomSounds)
+    play_audio(y, rate1)
