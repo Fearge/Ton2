@@ -19,6 +19,7 @@ import soundfile as sf  # Zum Dateien einlesen
 import matplotlib.pyplot as plt  # Für Plotting
 import scipy.io.wavfile as wavfile
 from matplotlib.ticker import ScalarFormatter
+from numba.cuda.cudadecl import hlog10_device
 from scipy import signal
 import librosa
 from scipy.linalg import hilbert
@@ -179,37 +180,40 @@ def calc_TN(file_data, sample_rate=44100):
 
     find_closest_index = lambda list, target: np.argmin(np.abs(np.array(list) - target)) # Funktion zum Finden des nächsten Wertes an einem Ziel
 
-    t_5, e_5 = times[find_closest_index(energies_db, -5)], energies_db[find_closest_index(energies_db, -5)]
-    t_15, e_15 = times[find_closest_index(energies_db, -15)], energies_db[find_closest_index(energies_db, -15)]
-    t_25, e_25 = times[find_closest_index(energies_db, -25)], energies_db[find_closest_index(energies_db, -25)]
-    t_35, e_35 = times[find_closest_index(energies_db, -35)], energies_db[find_closest_index(energies_db, -35)]
+    # Finden der Zeitpunkte für -5, -15, -25 und -35 dB
+    dB_levels = [-5, -15, -25, -35]
+    indices = [find_closest_index(energies_db, level) for level in dB_levels]
+    t_5i, t_15i, t_25i, t_35i = indices
 
-    print(f"T_10: {abs(t_5 - t_15) * 6:.2f}s | T_20: {abs(t_5 - t_25) * 3:.2f}s | T_30: {abs(t_5 - t_35) * 2:.2f}s")
+    print(f"T_10: {abs(times[t_5i] - times[t_15i]) * 6:.2f}s | T_20: {abs(times[t_5i] - times[t_25i]) * 3:.2f}s | T_30: {abs(times[t_5i] - times[t_35i]) * 2:.2f}s")
+
+
+    # approximiere Abklingkurven + Plotting
+    rt_lines = []
+
+    for i, level in enumerate(dB_levels[1:]):
+        m, a = np.polyfit(times[t_5i:indices[i+1]], energies_db[t_5i:indices[i+1]], 1)
+        rt_lines.append(m * np.array(times[t_5i:indices[i+1]]) + a)
+
+    rt_10_line, rt_20_line, rt_30_line = rt_lines
 
 
     plt.plot(times, energies_db)
-    """plt.plot([t_5, t_15], [e_5, e_15], '--')
-    plt.plot([t_5, t_25], [e_5, e_25], '--')
-    plt.plot([t_5, t_35], [e_5, e_35], '--')
-    plt.plot([t_15], [e_15], 'ro')
-    plt.plot([t_25], [e_25], 'ro')
-    plt.plot([t_35], [e_35], 'ro')"""
+    plt.plot(times[t_5i:t_15i], rt_10_line, '--')
+    plt.plot(times[t_5i:t_25i], rt_20_line, '--')
+    plt.plot(times[t_5i:t_35i], rt_30_line, '--')
 
-    # Plot interpolated lines
-    rt10_line = np.interp(times[find_closest_index(times,t_5):find_closest_index(times,t_15)], [t_5, t_15], [-5, -15])
-    rt20_line = np.interp(times[find_closest_index(times,t_5):find_closest_index(times,t_25)], [t_5, t_25], [-5, -25])
-    rt30_line = np.interp(times[find_closest_index(times,t_5):find_closest_index(times,t_35)], [t_5, t_35], [-5, -35])
-    plt.plot(times[find_closest_index(times,t_5):find_closest_index(times,t_15)], rt10_line, label='Interpolated RT10')
-    plt.plot(times[find_closest_index(times,t_5):find_closest_index(times,t_25)], rt20_line, label='Interpolated RT20')
-    plt.plot(times[find_closest_index(times,t_5):find_closest_index(times,t_35)], rt30_line, label='Interpolated RT30')
+    # Korrelation der Abklingkurven mit den Energieverläufen
 
-    corr_rt10, _ = pearsonr(rt10_line, energies_db[find_closest_index(times,t_5):find_closest_index(times,t_15)])
-    corr_rt20, _ = pearsonr(rt20_line, energies_db[find_closest_index(times,t_5):find_closest_index(times,t_25)])
-    corr_rt30, _ = pearsonr(rt30_line, energies_db[find_closest_index(times,t_5):find_closest_index(times,t_35)])
+    medians = [np.median(energies_db[t_5i:t_15i]), np.median(energies_db[t_5i:t_25i]),
+               np.median(energies_db[t_5i:t_35i])]
+    r_sq = [np.sum((rt_line - med) ** 2) / np.sum((energies_db[t_5i:t_idx] - med) ** 2) for rt_line, med, t_idx in
+            zip([rt_10_line, rt_20_line, rt_30_line], medians, [t_15i, t_25i, t_35i])]
+    rho = [1000 * (1 - r) for r in r_sq]
+    rho_10, rho_20, rho_30 = rho
 
-    print(f"Correlation with RT10: {corr_rt10 * 100:.2f} %")
-    print(f"Correlation with RT20: {corr_rt20 * 100:.2f} %")
-    print(f"Correlation with RT30: {corr_rt30 * 100:.2f} %")
+    print(f"Quadratischer Korrelationskoeffizient für RT10: {r_sq[0] * 100:.2f} % | RT20: {r_sq[1] * 100:.2f} % | RT30: {r_sq[2] * 100:.2f} %")
+    print(f"Nichtlinearitätsparameter für RT10: {rho_10:.2f} ‰ | RT20: {rho_20:.2f} ‰ | RT30: {rho_30:.2f} ‰")
 
     plt.xlabel('Time (s)')
     plt.ylabel('Energy (dB)')
@@ -231,8 +235,7 @@ def plot_spectrogram_and_spectrum(file, sample_rate):
     plt.plot(freqs, mg_db)
     plt.title("Amplitudenfrequenzgang")
     plt.xlabel("Frequenz (Hz)")
-    #plt.xscale("log")
-    #plt.gca().xaxis.set_major_formatter(ScalarFormatter(useMathText=True))
+    plt.xscale("log")
     plt.xlim(20, 22050)  # Set x-axis range from 20 Hz to 20 kHz
     plt.ylabel("Amplitude (dB)")
     plt.grid()

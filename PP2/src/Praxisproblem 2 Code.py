@@ -78,7 +78,7 @@ def approximate_linear(a, b = 0, N = 16):
 
     # lineare Kennlinie
     x = np.linspace(1, 3, 2**N)
-    y = a * x
+    y = a * x + b
 
     # e-Funktion
     [d,c] = np.polyfit(x, np.log(y), 1)
