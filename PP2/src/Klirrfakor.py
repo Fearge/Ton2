@@ -71,7 +71,7 @@ def plot_spectrum_with_peaks(fft_magnitude, sample_rate, peaks, value, title):
         title (str): Titel des Plots.
     """
 
-    freqs = np.linspace(0, sample_rate, len(fft_magnitude))
+    freqs = np.linspace(0, sample_rate//2, len(fft_magnitude))
 
     plt.figure(figsize=(10, 6))
     plt.plot(freqs, fft_magnitude, label='Spectrum')
@@ -101,8 +101,7 @@ def get_peaks(signal, distance, height_threshold):
         tuple: Indizes der Peaks und die Magnitude der FFT.
     """
     # returns the magnitude of the peaks of the spectrum + the spectrum
-    fft_magnitude = np.abs(np.fft.fft(signal))
-    fft_magnitude = fft_magnitude[:len(fft_magnitude)//2] # Only take the first half of the spectrum
+    fft_magnitude = np.abs(np.fft.rfft(signal))
     fft_magnitude = fft_magnitude / np.max(fft_magnitude)
 
     # Identify the peaks in the spectrum
@@ -125,6 +124,7 @@ def calc_thd(signal, sample_rate,distance = 100, height_threshold = 0.01, thresh
             float: THD-Wert.
         """
     peaks, mag = get_peaks(signal, distance, height_threshold)
+    print(peaks)
     peaks_mag = mag[peaks]
     fundamental = peaks_mag[0]
 
@@ -150,6 +150,7 @@ def calc_klirr(signal, sample_rate, distance = 100, height_threshold = 0.01, thr
             float: Klirrfaktor-Wert.
         """
     peaks, mag = get_peaks(signal, distance, height_threshold)
+    print(peaks)
     peaks_mag = mag[peaks]
 
     harmonics = peaks_mag[1:]
@@ -165,7 +166,7 @@ def calc_klirr(signal, sample_rate, distance = 100, height_threshold = 0.01, thr
 if __name__ == "__main__":
     sr = 44100
     freq = 1000
-    signal = generate_waveform('square', freq, 0.1, sr)
+    signal = generate_waveform('sine', freq, 0.1, sr)
     thd = calc_thd(signal, sr, 100)
     klirr = calc_klirr(signal, sr, 100)
     print(f"THD: {thd:.2f}%")

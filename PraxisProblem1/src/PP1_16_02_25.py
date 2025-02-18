@@ -1,16 +1,12 @@
 '''
 Ton2 – PP1 – Gruppe 4
-Linus Ollmann
-Mario Seibert
-Tom Koryciak
-Gabriel Christoforidis
+Mario Seibert - 2711151
 '''
 #H
 
 import os  # Für Dateipfade
 from math import log10
-from random import sample
-import timeit
+import time
 
 import numpy as np  # Für Berechnungen
 import scipy as sc
@@ -32,15 +28,6 @@ def amplitude_to_dbfs(amplitude, bottom=1e-10, top=1):
     return 20 * np.log10(
         np.clip(amplitude, bottom, top))  #Referenzwert 1 da Datein auf Werte [-1, 1] normiert (weggelassen)
 
-#amplitude_response = 20 * np.log10(abs(response) + 1e-8)  # Amplituden in dB
-
-def dbfs_to_amplitude(dbfs):
-    return 10 ** (dbfs / 20)
-
-
-def calc_mean_energy_per_sec(file, fs=44100):
-    return np.sum(file ** 2) / fs
-
 
 def calc_energy_in_interval(file, start_time=0.0, end_time=None, fs=44100):
     if end_time is None or end_time > (len(file) / fs):
@@ -54,10 +41,6 @@ def calc_energy_in_interval(file, start_time=0.0, end_time=None, fs=44100):
     return energy
 
 
-# Berechnet Scheitelfaktor, RMS und Crest-Faktor
-def calculate_rms(waveform):
-    return np.sqrt(np.mean(np.square(waveform)))
-
 def load_wav(file_path):
     file = os.path.join(os.path.dirname(__file__), file_path)
     data, sample_rate = sf.read(file)  # normiert Datei auf Wertebereich [-1, 1]
@@ -68,12 +51,6 @@ def load_wav(file_path):
     mono = (left_channel + right_channel) / 2"""
 
     return data, sample_rate
-
-
-def split_channels(data):
-    if len(data.shape) == 1:
-        return data, data  # Mono to both channels
-    return data[:, 0], data[:, 1]
 
 
 def play_audio(audio_data, sample_rate):
@@ -239,6 +216,7 @@ def calc_TN(file_data, sample_rate=44100):
     plt.ylabel('Energy (dB)')
     plt.title('Energy over Time')
     plt.legend(['Energy', 'T_10', 'T_20', 'T_30'])
+    plt.grid()
     plt.show()
 
 '''Aufgabe: Amplitudenfrequenzgang und Spektrogramm'''
@@ -255,9 +233,8 @@ def plot_spectrogram_and_spectrum(file, sample_rate):
     plt.plot(freqs, mg_db)
     plt.title("Amplitudenfrequenzgang")
     plt.xlabel("Frequenz (Hz)")
-    plt.xscale("log")
     plt.xlim(20, 22050)  # Set x-axis range from 20 Hz to 20 kHz
-    plt.ylabel("Amplitude (dB)")
+    plt.ylabel("Amplitude (dBFS)")
     plt.grid()
     plt.subplot(2, 1, 2)
 
@@ -290,10 +267,8 @@ if __name__ == "__main__":
     '''Ablauf'''
     print("{0:–>23} Impulsantwort einlesen {0:–<23}".format(""))
     h_data, sample_rate = load_wav("Datei A_WS24.wav")
-    h_data = h_data[:, 1]
+    h_data = h_data.mean(axis=1) if len(h_data.shape) > 1 else h_data # In Mono umwandeln
     print(f'Sample Rate: {sample_rate} Hz')
-
-    #plot_RIR_logarithmic(h_data, sample_rate) # zur Bestimmung des SNR
 
     # Spektrogramm und Amplitudenfrequenzgang
     plot_spectrogram_and_spectrum(h_data, sample_rate)
@@ -311,8 +286,7 @@ if __name__ == "__main__":
 
     #Aufgabe Maße
     print("{0:->23} Mit Stille vor Datei {0:-<23}".format(""))
-    h_data = prepend_zeros(h_data,
-                           2200)  # Stille vor Signal Start simulieren (C50 -> 2205 samples, C80 -> 3528 samples für -inf dB bei fs = 44100)
+    h_data = prepend_zeros(h_data,2200)  # Stille vor Signal Start simulieren (C50 -> 2205 samples, C80 -> 3528 samples für -inf dB bei fs = 44100)
     print(f"Erste 10 Stellen:\n{h_data[:10]}")
     print(f"C50 = {calc_c50(h_data):.2f}dB")
     print(f"C80 = {calc_c80(h_data):.2f}dB")
@@ -324,7 +298,18 @@ if __name__ == "__main__":
     print(f"C80 = {calc_c80(h_data, sample_rate):.2f} dB")
 
     #Aufgabe Faltung
-    originalSounds = "Dustbin.wav"
+    originalSounds = "Chor.wav"
     roomSounds = "Datei A_WS24.wav"
     y, rate1 = foldThis(originalSounds, roomSounds)
-    play_audio(y, rate1)
+    #play_audio(y, rate1)
+
+    integrated_energy = []
+    length = len(h_data)
+    start_time = time.time()
+    for i in range(0, length):
+        energy = np.sum(h_data[i:length] ** 2)
+        integrated_energy.append(energy)
+    print(f'Time taken mit for loop:", {time.time() - start_time: .2f} s')
+    start_time = time.time()
+    np.flip(np.flip(h_data ** 2).cumsum())
+    print(f'Time taken mit cumsum:", {time.time() - start_time: .4f} s')

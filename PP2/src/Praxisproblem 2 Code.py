@@ -97,11 +97,6 @@ def approximate_linear(a, b = 0, N = 16):
     plt.show()
     return c, d, error
 
-
-
-
-
-
 def process_signal(input_signal, a, b, work_point):
     """
     Prozessiert ein Eingangssignal mit der Kennlinie y1(x) = e^(a * (x - work_point)) - b und plottet die Kennlinie.
@@ -215,7 +210,7 @@ def plot_spectrum_with_peaks(fft_magnitude, sample_rate, peaks, value, title):
     plt.plot(freqs, fft_magnitude, label='Spectrum')
     plt.plot(freqs[peaks], fft_magnitude[peaks], 'ro', label='Peaks')  # Mark the peaks
     for peak in peaks:
-        plt.annotate(f'{fft_magnitude[peak]:.2f}', (freqs[peak], fft_magnitude[peak]),
+        plt.annotate(f'{freqs[peak]:.2f}', (freqs[peak], fft_magnitude[peak]),
                      textcoords="offset points", xytext=(0, 10), ha='center')  # Annotate the peaks
     plt.xlabel('Frequency (Hz)')
     plt.ylabel('Amplitude')
@@ -328,12 +323,6 @@ def calculate_gain(input_signal, output_signal):
 
     return gain, gaindb
 
-
-#Kompressor
-
-
-
-
 def play_audio(audio_data, sample_rate):
     sd.play(audio_data, sample_rate)
     sd.wait()
@@ -351,7 +340,7 @@ if __name__ == "__main__":
     input_waveform, t = generate_waveform('sine', frequency, duration, sample_rate)
 
     # Audiodatei laden
-    #input_signal, sample_rate = load_wav("Sprechen_1.wav")
+    input_signal, sample_rate = load_wav("Hahn_2.wav")
     #t = np.linspace(0, len(input_signal) / sample_rate, num=len(input_signal), endpoint=False)
 
 
@@ -360,9 +349,9 @@ if __name__ == "__main__":
     print("{0:–>23} Einstellen der Kennlinie {0:–<23}".format(""))
     a = 2
     b = 0
-    AP = 0.4  # Arbeitspunkt (verschiebt praktisch Kennlinie nach links)
+    AP = 0  # Arbeitspunkt (verschiebt praktisch Kennlinie nach links)
     print(f"a = {a}, b = {b}, AP = {AP}")
-    approximate_linear(1.1, N = 8)
+    a,b, _ = approximate_linear(1.1)
 
     print("{0:–>23} Processing und Plotten {0:–<23}".format(""))
     print("<Siehe Plots>")
@@ -370,7 +359,7 @@ if __name__ == "__main__":
     output_signal = process_signal(input_signal, a, b, AP)
 
     #Ein- und Ausgangssignale plotten und Verstärkungsmessung
-    plot_waveforms(t, input_signal, output_signal, max_time=0.02)
+   # plot_waveforms(t, input_signal, output_signal, max_time=0.02)
 
 
     #Klirrfaktor und THD
