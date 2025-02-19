@@ -382,11 +382,11 @@ def stereo_imaging():
     print(
         "Wichtige Infos zur Korrekten Experimentdurchführung: \n- Verwendung von Stereolautsprechen statt Kopfhörern \n- Positionierung des Kopfes, dass sich zwischen den Lautsprechern mindestens ein Winkel von 60° ergibt")
     print(
-        "Sie hören jetzt zuerst die maximale Rechtslokalisation (+18 dB), dann die maximale Linkslokalisation (-18 dB)")
+        "Sie hören jetzt zuerst die maximale Rechtslokalisation (-18 dB), dann die maximale Linkslokalisation (+18 dB)")
 
     # Beispielsignale abspielen
-    play_with_level_difference(tone, 18, duration=5)  # Maximale Rechtslokalisation
-    play_with_level_difference(tone, -18, duration=5)  # Maximale Linkslokalisation
+    play_with_level_difference(tone, 18, duration=5)  # Maximale Linkslokalisation
+    play_with_level_difference(tone, -18, duration=5)  # Maximale Rechtslokalisation
 
     sprache_values = set()
     sprache_level = []
@@ -399,7 +399,7 @@ def stereo_imaging():
             play_with_level_difference(tone, level_diff, duration=5)  # Gesamte Datei abspielen
 
             while True:
-                response = input("Wie haben Sie das Signal wahrgenommen? (-1 = links, 0 = Mitte, 1 = rechts): ")
+                response = input("Wie haben Sie das Signal wahrgenommen? (-1 = rechts, 0 = Mitte, 1 = links): ")
                 response = response.replace(",", ".")  # Ersetze Komma durch Punkt
                 try:
                     response_value = float(response)
@@ -427,7 +427,7 @@ def stereo_imaging():
             play_with_level_difference(knacksignal, level_diff, duration=5)  # Gesamte Datei abspielen
 
             while True:
-                response = input("Wie haben Sie das Knacksignal wahrgenommen? (-1 = links, 0 = Mitte, 1 = rechts): ")
+                response = input("Wie haben Sie das Knacksignal wahrgenommen? (-1 = rechts, 0 = Mitte, 1 = links): ")
                 response = response.replace(",", ".")  # Ersetze Komma durch Punkt
                 try:
                     response_value = float(response)
@@ -452,6 +452,11 @@ def stereo_imaging():
     plt.subplot(1, 2, 1)
     plt.scatter(sprache_x, sprache_y, label="Messwerte", color='r')  # Scatterplot der Punkte
 
+    # Trendlinie berechnen und plotten
+    z = np.polyfit(sprache_x, sprache_y, 3)
+    p = np.poly1d(z)
+    plt.plot(sprache_x, p(sprache_x), "b--", label="Trendlinie")
+
     plt.xlabel("Pegeldifferenz (dB)")
     plt.ylabel("Wahrgenommene Richtung (%)")
     plt.title("Pegeldifferenz-Stereofonie")
@@ -466,6 +471,11 @@ def stereo_imaging():
     # Pegeldifferenz-Plot
     plt.subplot(1, 2, 2)
     plt.scatter(knack_x, knack_y, label="Messwerte", color='r')  # Scatterplot der Punkte
+
+    # Trendlinie berechnen und plotten
+    z = np.polyfit(knack_x, knack_y, 3)
+    p = np.poly1d(z)
+    plt.plot(knack_x, p(knack_x), "b--", label="Trendlinie")
 
     plt.xlabel("Pegeldifferenz (dB)")
     plt.ylabel("Wahrgenommene Richtung (%)")
