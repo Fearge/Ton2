@@ -17,6 +17,7 @@ import threading
 import platform
 import time
 import pandas as pd
+from scipy.interpolate import make_interp_spline
 
 # Lauffähigkeit auf allen Plattformen sicherstellen
 if platform.system() == 'Windows':
@@ -349,7 +350,7 @@ def normalization(audio):
     return audio / max(1.0, np.max(np.abs(audio)))  # Normalisierung mit Clipping-Schutz
 def stereo_imaging():
     # Experimentparameter
-    num_trials = 5  # Anzahl der Wiederholungen
+    num_trials = 15  # Anzahl der Wiederholungen
     level_range = (-18, 18)  # Pegeldifferenz in dB
 
     # Lade die vorhandene WAV-Datei
@@ -395,7 +396,7 @@ def stereo_imaging():
         if abs(level_diff) not in sprache_values:
             sprache_values.add(abs(level_diff))  # Betrag nehmen
 
-            play_with_level_difference(tone, level_diff, duration=int(len(tone) / fs))  # Gesamte Datei abspielen
+            play_with_level_difference(tone, level_diff, duration=5)  # Gesamte Datei abspielen
 
             while True:
                 response = input("Wie haben Sie das Signal wahrgenommen? (-1 = links, 0 = Mitte, 1 = rechts): ")
@@ -423,7 +424,7 @@ def stereo_imaging():
         if abs(level_diff) not in knack_values:
             knack_values.add(abs(level_diff))  # Betrag nehmen
 
-            play_with_level_difference(knacksignal, level_diff, duration=int(len(knacksignal) / fs))  # Gesamte Datei abspielen
+            play_with_level_difference(knacksignal, level_diff, duration=5)  # Gesamte Datei abspielen
 
             while True:
                 response = input("Wie haben Sie das Knacksignal wahrgenommen? (-1 = links, 0 = Mitte, 1 = rechts): ")
@@ -450,7 +451,7 @@ def stereo_imaging():
     # Pegeldifferenz-Plot
     plt.subplot(1, 2, 1)
     plt.scatter(sprache_x, sprache_y, label="Messwerte", color='r')  # Scatterplot der Punkte
-    plt.plot(sprache_x, sprache_y, color='r', linewidth=0.5)  # Dünne Linie, die die Punkte verbindet
+
     plt.xlabel("Pegeldifferenz (dB)")
     plt.ylabel("Wahrgenommene Richtung (%)")
     plt.title("Pegeldifferenz-Stereofonie")
@@ -465,7 +466,7 @@ def stereo_imaging():
     # Pegeldifferenz-Plot
     plt.subplot(1, 2, 2)
     plt.scatter(knack_x, knack_y, label="Messwerte", color='r')  # Scatterplot der Punkte
-    plt.plot(knack_x, knack_y, color='r', linewidth=0.5)  # Dünne Linie, die die Punkte verbindet
+
     plt.xlabel("Pegeldifferenz (dB)")
     plt.ylabel("Wahrgenommene Richtung (%)")
     plt.title("Pegeldifferenz-Stereofonie")
@@ -478,16 +479,12 @@ def stereo_imaging():
 #Abb 1
 #Mischung des Signals, abhängig von der Kohärenz
 def mix_signals(signal1, signal2, coherence):
-    # Normalize signals
-    signal1 = signal1 / np.max(np.abs(signal1))
-    signal2 = signal2 / np.max(np.abs(signal2))
+    alpha = np.sqrt((1 - coherence) / (1 + coherence))
 
-    # Calculate the mixed signals
-    mixed_left = np.sqrt(coherence) * signal1 + np.sqrt(1 - coherence) * signal2
-    mixed_right = np.sqrt(coherence) * signal1 - np.sqrt(1 - coherence) * signal2
+    mixed_left = signal1 + alpha * signal2
+    mixed_right = signal1 - alpha * signal2
 
     return mixed_left, mixed_right
-
 def play_noise_with_coherence(duration, coherence, fs=44100, ampl=1.0):
     noise1 = np.random.randn(int(duration * fs))
     noise2 = np.random.randn(int(duration * fs))
@@ -499,13 +496,25 @@ def play_noise_with_coherence(duration, coherence, fs=44100, ampl=1.0):
     stereo_signal *= ampl
     sd.play(stereo_signal, samplerate=fs)
     sd.wait()
-
+    return left, right
 def play_randomized_coherence_noises():
-    coherences = [1,1,1,0.85,0.85, 0.85, 0.4, 0.4, 0.4, 0, 0, 0]
+    coherences = [1, 1, 0.85, 0.85, 0.4, 0.4,  0, 0,]
+    measuered_coherences = []
     np.random.shuffle(coherences)
-    for coherence in coherences:
-        play_noise_with_coherence(5, coherence)
-    print("Gespielte Kohärenzgrade:", coherences)
+    print(f"Es werden randomisiert {len(coherences)} Rauschsignale mit unterschiedlichen Kohärenzgraden abgespielt.\n "
+          "Bitte notieren Sie, wo das jeweilige Höreignis wahrgenommen wird")
+
+
+    for i, coherence in enumerate(coherences):
+        print(f"Darbietung: {i+1}")
+        left, right = play_noise_with_coherence(5, coherence)
+        measuered_coherences.append(f"{interaurale_kohaerenz(left, right): .2f}")
+        time.sleep(5)
+
+    print("{:<15} {:<15}".format("Darbietung", "Kohärenzgrad"))
+    print("-" * 30)
+    for i, coherence in enumerate(measuered_coherences):
+        print("{:<15} {:<15}".format(i + 1, coherence))
 
 
 if __name__ == "__main__":
@@ -553,6 +562,9 @@ if __name__ == "__main__":
     plt.legend()
     plt.show()
     '''
-    play_noise_with_coherence(5, 1)
+    # überprüfung zu Abb. 1
+    #play_randomized_coherence_noises()
+    # Überprüfung zu Abb.2
     #binaural_signal_masking()
-    #stereo_imaging()
+    # Überprüfung zu Abb.3
+    stereo_imaging()
